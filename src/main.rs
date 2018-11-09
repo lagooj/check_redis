@@ -1,11 +1,7 @@
 extern crate clap;
 extern crate redis;
 
-
 use clap::{Arg, App};
-
-use redis::Commands;
-
 
 
 fn main() {
@@ -33,48 +29,46 @@ fn main() {
              .takes_value(true))
         .get_matches();
 
-       let warning_ts = cli_matches.value_of("WARNING").unwrap();
-       let critical_ts = cli_matches.value_of("CRITICAL").unwrap();
-       let hostname = cli_matches.value_of("HOSTNAME:PORT").unwrap();
+    let warning_ts :u8 = cli_matches.value_of("WARNING").unwrap().parse::<u8>().unwrap();
+    let critical_ts :u8 = cli_matches.value_of("CRITICAL").unwrap().parse::<u8>().unwrap();
+    let hostname = cli_matches.value_of("HOSTNAME:PORT").unwrap();
 
-    test_redis(hostname, warning_ts, critical_ts);
+    let percent = match get_memory_values(hostname) {
+        Err(e) => panic!(e),
+        Ok(v) => compute_percent(v),
+    };
+
+    match percent {
+        _ if percent > critical_ts => println!("Critical triggered"),
+        _ if percent > warning_ts => println!("Warning triggered"),
+        _ => println!("Ok"),
+    };
 }
-pub fn test_redis(hostname: &str, warning: &str, critical: &str){
-    // Open a connection
+pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError> {
+
     let redis_host= format!("redis://{}", hostname);
     let client =  redis::Client::open(&*redis_host).unwrap();
     let con = client.get_connection().unwrap();
     let info :redis::InfoDict = redis::cmd("INFO").query(&con).unwrap();
-    let max_memory :Option<usize> = info.get("max_memory");
-    let used_memory :Option<usize> = info.get("used_memory");
-    println!("{:?}",max_memory.unwrap_or(0));
-    println!("{:?}",used_memory.unwrap_or(0));
-    //println!("{:?}", client);
-/*    let client = match client {
-        Ok(o) => { println!("{:?}",o); o },
-        Err(e) => println!("Erreur:{:?}", e),
-    };*/
+    let mut memory :Vec<usize> = Vec::new();
 
-    // set key = “Hello World”
-    let _: () = match client.set("key","Hello World") {
-        Ok(o) => o,
-        Err(e) => println!("{:?}", e),
-    };
+    memory.push( info.get("maxmemory").unwrap_or(0) );
+    memory.push( info.get("used_memory").unwrap_or(0) );
 
-    // get key
-    let key : String = client.get("key").unwrap();
-       println!("Value of config: {}", warning);
-       println!("Value of critical: {}", critical);
-       println!("Value of hostname: {}", hostname);
-    println!("key: {}", key);
-    println!("{:?}", compute_percent(max_memory.unwrap_or(0),used_memory.unwrap_or(0) ));
+    return Ok(memory);
 }
 
-fn compute_percent( max :usize, used :usize ) -> u32 {
+fn compute_percent(mem: Vec<usize>) -> u8 {
+
+    let max  = mem[0];
+    let used = mem[1];
+    println!("{} - {}", used as u32, max  as u32);
+    println!("{}", ((used as f64 / max as f64) * 100.00));
+
     if max == 0  || used == 0 {
         return 100;
     }
     else {
-        return ( (max / used) * 100 ) as u32;
+        return ( (used as f64 / max as f64) * 100.00 ) as u8;
     }
 }
