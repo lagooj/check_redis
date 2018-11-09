@@ -5,3 +5,4 @@ authors = ["lagooj <lagooj@m-projects.org>"]
 
 [dependencies]
 redis = "0.8.0"
+clap = "2"
