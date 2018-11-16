@@ -37,17 +37,23 @@ fn main() {
     let warning_ts :u8 = get_warn_tres(&cli_matches);
     let critical_ts :u8 = get_crit_tres(&cli_matches);
     let hostname = cli_matches.value_of("HOSTNAME:PORT").unwrap();
+
     let percent = match get_memory_values(hostname) {
         Err(e) => panic!(e),
         Ok(v) => compute_percent(v, get_verbose(&cli_matches)),
     };
 
     match percent {
-        _ if percent > critical_ts => println!("Critical triggered"),
-        _ if percent > warning_ts => println!("Warning triggered"),
+        _ if percent > critical_ts => {
+            println!("Critical : {}% used", percent);
+            process::exit(2)
+        },
+        _ if percent > warning_ts => {
+            println!("Warning : {}% used", percent);
+            process::exit(1)
+        },
         _ => process::exit(0)
     };
-    process::exit(0);
 }
 
 pub fn get_warn_tres(matches :&ArgMatches) -> u8 {
@@ -55,7 +61,7 @@ pub fn get_warn_tres(matches :&ArgMatches) -> u8 {
 }
 
 pub fn get_crit_tres(matches :&ArgMatches) -> u8 {
-    matches.value_of("CRITICAL").expect("Warning threshold must be set").parse::<u8>().expect("And must be a u8")
+    matches.value_of("CRITICAL").expect("Critical threshold must be set").parse::<u8>().expect("And must be a u8")
 }
 pub fn get_verbose(matches :&ArgMatches) -> bool {
     matches.is_present("v")
