@@ -1,7 +1,7 @@
 extern crate clap;
 extern crate redis;
 
-use clap::{Arg, App};
+use clap::{Arg, App, ArgMatches};
 use std::process;
 
 fn main() {
@@ -34,12 +34,12 @@ fn main() {
              .multiple(false))
         .get_matches();
 
-    let warning_ts :u8 = cli_matches.value_of("WARNING").unwrap().parse::<u8>().unwrap();
-    let critical_ts :u8 = cli_matches.value_of("CRITICAL").unwrap().parse::<u8>().unwrap();
+    let warning_ts :u8 = get_warn_tres(&cli_matches);
+    let critical_ts :u8 = get_crit_tres(&cli_matches);
     let hostname = cli_matches.value_of("HOSTNAME:PORT").unwrap();
     let percent = match get_memory_values(hostname) {
         Err(e) => panic!(e),
-        Ok(v) => compute_percent(v),
+        Ok(v) => compute_percent(v, get_verbose(&cli_matches)),
     };
 
     match percent {
@@ -48,6 +48,17 @@ fn main() {
         _ => process::exit(0)
     };
     process::exit(0);
+}
+
+pub fn get_warn_tres(matches :&ArgMatches) -> u8 {
+    matches.value_of("WARNING").expect("Warning threshold must be set").parse::<u8>().expect("And must be a u8")
+}
+
+pub fn get_crit_tres(matches :&ArgMatches) -> u8 {
+    matches.value_of("CRITICAL").expect("Warning threshold must be set").parse::<u8>().expect("And must be a u8")
+}
+pub fn get_verbose(matches :&ArgMatches) -> bool {
+    matches.is_present("v")
 }
 
 pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError> {
@@ -64,12 +75,14 @@ pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError>
     return Ok(memory);
 }
 
-fn compute_percent(mem: Vec<usize>) -> u8 {
+fn compute_percent(mem: Vec<usize>, verbose: bool) -> u8 {
 
     let max  = mem[0];
     let used = mem[1];
-    println!("{} - {}", used as u32, max  as u32);
-    println!("{}", ((used as f64 / max as f64) * 100.00));
+    if verbose {
+        println!("{} - {}", used as u32, max  as u32);
+        println!("{}", ((used as f64 / max as f64) * 100.00));
+    }
     if max == 0  || used == 0 {
         return 100;
     }
