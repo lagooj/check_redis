@@ -40,7 +40,7 @@ fn main() {
 
     let percent = match get_memory_values(hostname) {
         Err(e) => panic!(e),
-        Ok(v) => compute_percent(v, get_verbose(&cli_matches)),
+        Ok(v) => compute_percent(&v, get_verbose(&cli_matches)),
     };
 
     match percent {
@@ -66,14 +66,33 @@ pub fn get_crit_tres(matches :&ArgMatches) -> u8 {
 pub fn get_verbose(matches :&ArgMatches) -> bool {
     matches.is_present("v")
 }
-
 pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError> {
 
     let redis_host= format!("redis://{}", hostname);
-    let client =  redis::Client::open(&*redis_host).unwrap();
-    let con = client.get_connection().unwrap();
-    let info :redis::InfoDict = redis::cmd("INFO").query(&con).unwrap();
     let mut memory :Vec<usize> = Vec::new();
+
+    let client = match redis::Client::open(&*redis_host) {
+        Ok(client) => client,
+        Err(error) => {
+            println!("UNKNOWN : {}", error );
+            process::exit(3);
+        }
+    };
+    let con = match client.get_connection() {
+        Ok(con) => con,
+        Err(error) => {
+            println!("UNKNOWN : {}", error );
+            process::exit(3);
+        }
+    };
+    // TODO: Need to take care of time, should use async from Redis::Future
+    let info :redis::InfoDict = match redis::cmd("INFO").query(&con) {
+        Ok(info) => info,
+        Err(error) => {
+            println!("UNKNOWN : {}", error );
+            process::exit(3);
+        }
+    };
 
     memory.push( info.get("maxmemory").unwrap_or(0) );
     memory.push( info.get("used_memory").unwrap_or(0) );
@@ -81,7 +100,7 @@ pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError>
     return Ok(memory);
 }
 
-fn compute_percent(mem: Vec<usize>, verbose: bool) -> u8 {
+fn compute_percent(mem: &Vec<usize>, verbose: bool) -> u8 {
 
     let max  = mem[0];
     let used = mem[1];
