@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["lagooj <lagooj@m-projects.org>"]
 
 [dependencies]
-redis = "0.8.0"
+redis = "0.9.1"
 clap = "2"
