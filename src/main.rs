@@ -52,7 +52,10 @@ fn main() {
             println!("Warning : {}% used", percent);
             process::exit(1)
         },
-        _ => process::exit(0)
+        _ => { 
+            println!("OK : {}% used", percent);
+            process::exit(0)
+        }
     };
 }
 
@@ -97,10 +100,10 @@ pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError>
     memory.push( info.get("maxmemory").unwrap_or(0) );
     memory.push( info.get("used_memory").unwrap_or(0) );
 
-    return Ok(memory);
+    Ok(memory)
 }
 
-fn compute_percent(mem: &Vec<usize>, verbose: bool) -> u8 {
+fn compute_percent(mem: &[usize], verbose: bool) -> u8 {
 
     let max  = mem[0];
     let used = mem[1];
@@ -109,9 +112,9 @@ fn compute_percent(mem: &Vec<usize>, verbose: bool) -> u8 {
         println!("{}", ((used as f64 / max as f64) * 100.00));
     }
     if max == 0  || used == 0 {
-        return 100;
+        100
     }
     else {
-        return ( (used as f64 / max as f64) * 100.00 ) as u8;
+        ( (used as f64 / max as f64) * 100.00 ) as u8
     }
 }
