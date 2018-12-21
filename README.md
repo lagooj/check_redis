@@ -8,7 +8,7 @@ Just trying to write some rust.
 ## Usage
 
 Check redis status and memory usage, should be runned by icinga, nagios
-
+```
 USAGE:
     check_redis [FLAGS] --critical <CRITICAL> --hostname <HOSTNAME:PORT> --warning <WARNING>
 
@@ -21,4 +21,4 @@ OPTIONS:
     -c, --critical <CRITICAL>         Set critical threshold
     -H, --hostname <HOSTNAME:PORT>    Set hostname and port ex: localhost:6379
     -w, --warning <WARNING>           Set warning threshold
-
+```

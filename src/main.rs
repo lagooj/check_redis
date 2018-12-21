@@ -118,3 +118,14 @@ fn compute_percent(mem: &[usize], verbose: bool) -> u8 {
         ( (used as f64 / max as f64) * 100.00 ) as u8
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn percent_50() {
+        let mut vec = vec![24,12];
+        assert_eq!(compute_percent( &vec, false),50);
+    }
+}
