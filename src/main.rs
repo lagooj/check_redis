@@ -52,7 +52,7 @@ fn main() {
             println!("Warning : {}% used", percent);
             process::exit(1)
         },
-        _ => { 
+        _ => {
             println!("OK : {}% used", percent);
             process::exit(0)
         }
@@ -82,13 +82,16 @@ pub fn get_memory_values(hostname: &str) -> Result<Vec<usize>,redis::RedisError>
         }
     };
     let con = match client.get_connection() {
-        Ok(con) => con,
+        Ok(con) => {
+            con.set_read_timeout(Some(std::time::Duration::new(5,0))).expect("Can't set read timeout");
+            con.set_write_timeout(Some(std::time::Duration::new(5,0))).expect("Can't set write timeout");
+            con
+        },
         Err(error) => {
             println!("UNKNOWN : {}", error );
             process::exit(3);
         }
     };
-    // TODO: Need to take care of time, should use async from Redis::Future
     let info :redis::InfoDict = match redis::cmd("INFO").query(&con) {
         Ok(info) => info,
         Err(error) => {
@@ -125,7 +128,7 @@ mod tests {
 
     #[test]
     fn percent_50() {
-        let mut vec = vec![24,12];
+        let vec = vec![24,12];
         assert_eq!(compute_percent( &vec, false),50);
     }
 }
